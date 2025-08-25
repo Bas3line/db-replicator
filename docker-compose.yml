@@ -1,0 +1,59 @@
+services:
+  sm-backup:
+    image: postgres:15-alpine
+    container_name: sm-backup
+    environment:
+      POSTGRES_DB: ${BACKUP_DB_NAME:-enigma}
+      POSTGRES_USER: ${BACKUP_DB_USER:-enigma}  
+      POSTGRES_PASSWORD: ${BACKUP_DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - backup_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_replication_slots=4
+      -c max_wal_senders=4
+      -c shared_preload_libraries=''
+    restart: unless-stopped
+    networks:
+      - cdc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BACKUP_DB_USER:-enigma} -d ${BACKUP_DB_NAME:-enigma}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cdc-replicator:
+    build: .
+    container_name: cdc-replicator
+    environment:
+      - PROD_DB_HOST=enigma-postgres
+      - PROD_DB_PORT=5432
+      - PROD_DB_NAME=${PROD_DB_NAME}
+      - PROD_DB_USER=${PROD_DB_USER}
+      - PROD_DB_PASSWORD=${PROD_DB_PASSWORD}
+      - BACKUP_DB_HOST=sm-backup
+      - BACKUP_DB_PORT=5432
+      - BACKUP_DB_NAME=${BACKUP_DB_NAME}
+      - BACKUP_DB_USER=${BACKUP_DB_USER}
+      - BACKUP_DB_PASSWORD=${BACKUP_DB_PASSWORD}
+      - REPLICATION_SLOT=${REPLICATION_SLOT}
+      - PUBLICATION_NAME=${PUBLICATION_NAME}
+      - BATCH_SIZE=${BATCH_SIZE}
+      - POLL_INTERVAL_MS=${POLL_INTERVAL_MS}
+      - LOG_LEVEL=${LOG_LEVEL}
+    depends_on:
+      sm-backup:
+        condition: service_healthy
+    networks:
+      - cdc-network
+    restart: unless-stopped
+
+volumes:
+  backup_data:
+
+networks:
+  cdc-network:
+    external: true
