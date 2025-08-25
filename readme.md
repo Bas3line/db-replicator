@@ -41,8 +41,9 @@ DB REPL is an **ultra-lightweight**, **fast** Change Data Capture (CDC) replicat
 <div align="center">
 
 ### **Performance Comparison**
+Massive Difference in performance
 
-| Metric | FastPostgresCDC | Debezium | AWS DMS | Traditional ETL |
+| Metric | DB REPL | Debezium | AWS DMS | Traditional ETL |
 |--------|-----------------|----------|---------|----------------|
 | **Latency** | `<10ms` | `~50ms` | `~200ms` | `~5-60min` |
 | **Memory Usage** | `~15MB` | `~200MB` | `~500MB` | `~1GB+` |
